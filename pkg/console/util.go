@@ -115,7 +115,7 @@ func getRemoteSSHKeys(url string) ([]string, error) {
 		keys = append(keys, line)
 	}
 	if len(keys) == 0 {
-		return nil, errors.Errorf(("no key found"))
+		return nil, errors.Errorf("no key found")
 	}
 	return keys, nil
 }
@@ -206,6 +206,10 @@ func toCloudConfig(cfg *config.HarvesterConfig) (*k3os.CloudConfig, error) {
 	var extraK3sArgs []string
 	if cfg.Install.MgmtInterface != "" {
 		extraK3sArgs = []string{"--flannel-iface", cfg.Install.MgmtInterface}
+	}
+
+	if cfg.Install.VIP != "" {
+		extraK3sArgs = append(extraK3sArgs, []string{"--tls-san", cfg.Install.VIP}...)
 	}
 
 	if cfg.Install.Mode == modeJoin {

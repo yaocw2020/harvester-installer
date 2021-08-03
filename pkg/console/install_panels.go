@@ -94,6 +94,7 @@ func setPanels(c *Console) error {
 		addAskCreatePanel,
 		addDiskPanel,
 		addNetworkPanel,
+		addVIPPanel,
 		addServerURLPanel,
 		addTokenPanel,
 		addPasswordPanels,
@@ -540,7 +541,7 @@ func addTokenPanel(c *Console) error {
 			closeThisPage()
 			if c.config.Install.Mode == modeCreate {
 				g.Cursor = false
-				return showNetworkPage(c)
+				return showNext(c, askVipMethodPanel)
 			}
 			return showNext(c, serverURLPanel)
 		},
@@ -654,7 +655,7 @@ func addNetworkPanel(c *Console) error {
 
 	getNextPagePanel := func() string {
 		if c.config.Install.Mode == modeCreate {
-			return tokenPanel
+			return askVipMethodPanel
 		}
 		return serverURLPanel
 	}
@@ -988,6 +989,117 @@ func getNetworkMethodOptions() ([]widgets.Option, error) {
 			Text:  networkMethodStaticText,
 		},
 	}, nil
+}
+
+func addVIPPanel(c *Console) error {
+	askVipMethodV, err := widgets.NewDropDown(c.Gui, askVipMethodPanel, askVipMethodLabel, getNetworkMethodOptions)
+	if err != nil {
+		return err
+	}
+	vipV, err := widgets.NewInput(c.Gui, vipPanel, vipLabel, false)
+	if err != nil {
+		return err
+	}
+
+	vipTextV := widgets.NewPanel(c.Gui, vipTextPanel)
+
+	askVipMethodVConfirm := func(g *gocui.Gui, v *gocui.View) error {
+		selected, err := askVipMethodV.GetData()
+		if err != nil {
+			return err
+		}
+
+		if selected == networkMethodDHCP {
+			vip, hwaddr, err := getVipFromDHCP(c.config.Install.MgmtInterface)
+			if err != nil {
+				vipTextV.Content = err.Error()
+				return showNext(c, vipTextPanel)
+			}
+			vipTextV.Content = "Got the VIP: " + vip
+			c.config.VIP = vip
+			c.config.VipMode = selected
+			c.config.VipHwAddr = hwaddr
+			return showNext(c, vipTextPanel)
+		}
+
+		return showNext(c, vipPanel)
+	}
+
+	closeThisPage := func() {
+		c.CloseElements(
+			askVipMethodPanel,
+			vipPanel,
+			vipTextPanel)
+	}
+
+	gotoPrevPage := func(g *gocui.Gui, v *gocui.View) error {
+		closeThisPage()
+		return showNetworkPage(c)
+	}
+	gotoNextPage := func(g *gocui.Gui, v *gocui.View) error {
+		if v.Name() == vipPanel {
+			vip, err := vipV.GetData()
+			if err != nil {
+				return err
+			}
+			c.config.VIP = vip
+			c.config.VipHwAddr = ""
+			c.config.VipMode = networkMethodStatic
+		}
+		closeThisPage()
+		return showNext(c, tokenPanel)
+	}
+	gotoAskVipMethodV := func(g *gocui.Gui, v *gocui.View) error {
+		closeThisPage()
+		return showNext(c, askVipMethodPanel)
+	}
+
+	askVipMethodV.KeyBindings = map[gocui.Key]func(*gocui.Gui, *gocui.View) error{
+		gocui.KeyArrowDown: askVipMethodVConfirm,
+		gocui.KeyEnter:     askVipMethodVConfirm,
+		gocui.KeyEsc:       gotoPrevPage,
+	}
+	vipTextV.KeyBindings = map[gocui.Key]func(gui *gocui.Gui, view *gocui.View) error{
+		gocui.KeyArrowUp:   gotoAskVipMethodV,
+		gocui.KeyArrowDown: gotoNextPage,
+		gocui.KeyEnter:     gotoNextPage,
+		gocui.KeyEsc:       gotoPrevPage,
+	}
+	vipV.KeyBindings = map[gocui.Key]func(*gocui.Gui, *gocui.View) error{
+		gocui.KeyArrowUp:   gotoAskVipMethodV,
+		gocui.KeyArrowDown: gotoNextPage,
+		gocui.KeyEnter:     gotoNextPage,
+		gocui.KeyEsc:       gotoPrevPage,
+	}
+
+	askVipMethodV.PreShow = func() error {
+		c.Gui.Cursor = true
+		return c.setContentByName(titlePanel, vipTitle)
+	}
+
+	maxX, maxY := c.Gui.Size()
+	askVipMethodV.SetLocation(maxX/8, maxY/8, maxX/8*7, maxY/8+2)
+	c.AddElement(askVipMethodPanel, askVipMethodV)
+	vipV.SetLocation(maxX/8, maxY/8+3, maxX/8*7, maxY/8+5)
+	c.AddElement(vipPanel, vipV)
+	vipTextV.SetLocation(maxX/8, maxY/8+3, maxX/8*7, maxY/8+5)
+	c.AddElement(vipTextPanel, vipTextV)
+
+	return nil
+}
+
+func getVipFromDHCP(iface string) (string, string, error) {
+	iface = "harvester-br0"
+	out, err := exec.Command("/bin/sh", "-c", "get-vip "+iface).CombinedOutput()
+	if err != nil {
+		return "", "", err
+	}
+	f := strings.Fields(string(out))
+	if len(f) != 2 {
+		return "", "", fmt.Errorf("wrong output %v", f)
+	}
+
+	return f[0], f[1], nil
 }
 
 func addProxyPanel(c *Console) error {

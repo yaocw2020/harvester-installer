@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -e
+
+function usage() {
+   echo "usage: get-vip INTERFACE"
+}
+
+[ $# != 1 ] && usage && exit 1
+
+NIC=$1
+ip link add macvlan-0 link $NIC type macvlan
+ip link set macvlan-0 up
+
+udhcpc -i macvlan-0 > /dev/null 2>&1
+
+LINK=`ip a show dev macvlan-0`
+HWADDR=`echo $LINK | cut -d " " -f 15`
+IP=`echo $LINK | cut -d " " -f19 | cut -d "/" -f 1`
+
+echo $IP
+echo $HWADDR
+
+ip link delete macvlan-0

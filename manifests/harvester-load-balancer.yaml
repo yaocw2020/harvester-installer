@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: harvester-system
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: harvester-load-balancer
+  namespace: kube-system
+spec:
+  chart: https://%{KUBERNETES_API}%/static/charts/$HARVESTER_LOAD_BALANCER_CHART
+  targetNamespace: harvester-system
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: kube-vip
+  namespace: kube-system
+spec:
+  chart: https://%{KUBERNETES_API}%/static/charts/$KUBE_VIP_CHART
+  targetNamespace: harvester-system
+  set:
+    interface: $INTERFACE
+    address: $ADDRESS
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: kube-vip-cloud-provider
+  namespace: kube-system
+spec:
+  chart: https://%{KUBERNETES_API}%/static/charts/$KUBE_VIP_CLOUD_PROVIDER_CHART
+  targetNamespace: harvester-system
+  set:
+    globalPool: $GLOBAL_POOL

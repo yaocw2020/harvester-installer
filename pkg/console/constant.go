@@ -18,6 +18,9 @@ const (
 	gatewayPanel          = "gateway"
 	dnsServersPanel       = "dnsServers"
 	networkValidatorPanel = "networkValidator"
+	askVipMethodPanel     = "askVipMethodPanel"
+	vipPanel              = "vipPanel"
+	vipTextPanel          = "vipTextPanel"
 	cloudInitPanel        = "cloudInit"
 	validatorPanel        = "validator"
 	notePanel             = "note"
@@ -39,6 +42,10 @@ const (
 	addressLabel          = "IPv4 Address"
 	gatewayLabel          = "Gateway"
 	dnsServersLabel       = "DNS Servers"
+
+	vipTitle          = "Configure VIP"
+	vipLabel          = "VIP"
+	askVipMethodLabel = "VIP Mode"
 
 	networkMethodDHCP       = "dhcp"
 	networkMethodDHCPText   = "Automatic (DHCP)"
