@@ -7,7 +7,7 @@ spec:
   valuesContent: |-
     kube-vip:
       config:
-        vip_interface: "{{ .MgmtInterface }}"
+        vip_interface: "bond0"
     service:
       vip:
         enabled: true

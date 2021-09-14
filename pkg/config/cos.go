@@ -233,14 +233,27 @@ func UpdateNetworkConfig(stage *yipSchema.Stage, networks []Network, run bool) e
 			return fmt.Errorf("unsupported network method %s", network.Method)
 		}
 
-		ifcfg, err := render(templ, network)
+		bondCfg, err := render(templ, network)
+		if err != nil {
+			return err
+		}
+
+		stage.Files = append(stage.Files, yipSchema.File{
+			Path:        "/etc/sysconfig/network/ifcfg-bond0",
+			Content:     bondCfg,
+			Permissions: 0600,
+			Owner:       0,
+			Group:       0,
+		})
+
+		slaveCfg, err := render(templ, network)
 		if err != nil {
 			return err
 		}
 
 		stage.Files = append(stage.Files, yipSchema.File{
 			Path:        fmt.Sprintf("/etc/sysconfig/network/ifcfg-%s", network.Interface),
-			Content:     ifcfg,
+			Content:     slaveCfg,
 			Permissions: 0600,
 			Owner:       0,
 			Group:       0,
@@ -249,8 +262,8 @@ func UpdateNetworkConfig(stage *yipSchema.Stage, networks []Network, run bool) e
 		// default gateway for static mode
 		if network.Method == NetworkMethodStatic {
 			stage.Files = append(stage.Files, yipSchema.File{
-				Path:        fmt.Sprintf("/etc/sysconfig/network/ifroute-%s", network.Interface),
-				Content:     fmt.Sprintf("default %s - %s\n", network.Gateway, network.Interface),
+				Path:        "/etc/sysconfig/network/ifroute-bond0",
+				Content:     fmt.Sprintf("default %s - %s\n", network.Gateway, "bond0"),
 				Permissions: 0600,
 				Owner:       0,
 				Group:       0,
@@ -258,7 +271,7 @@ func UpdateNetworkConfig(stage *yipSchema.Stage, networks []Network, run bool) e
 		}
 
 		if network.Method == NetworkMethodDHCP {
-			stage.Commands = append(stage.Commands, fmt.Sprintf("rm -f /etc/sysconfig/network/ifroute-%s", network.Interface))
+			stage.Commands = append(stage.Commands, "rm -f /etc/sysconfig/network/ifroute-bond0")
 		}
 
 		for _, nameServer := range network.DNSNameservers {

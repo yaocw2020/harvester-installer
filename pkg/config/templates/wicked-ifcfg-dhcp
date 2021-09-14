@@ -1,2 +1,6 @@
+STARTMODE='auto'
 BOOTPROTO='dhcp'
-STARTMODE='onboot'
+DHCLIENT_SET_DEFAULT_ROUTE='yes'
+BONDING_MASTER='yes'
+BONDING_SLAVE_0="{{ .MgmtInterface }}"
+BONDING_MODULE_OPTS='mode=active-backup miimon=100 fail_over_mac=follow'
